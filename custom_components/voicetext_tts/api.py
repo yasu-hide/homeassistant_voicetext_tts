@@ -96,13 +96,13 @@ async def _post_chunk(
         "text": text,
         "speaker": speaker,
         "format": "mp3",
-        "emotion_level": str(emotion_level),
         "pitch": str(pitch),
         "speed": str(speed),
         "volume": str(volume),
     }
     if emotion and speaker in EMOTION_CAPABLE_SPEAKERS:
         data["emotion"] = emotion
+        data["emotion_level"] = str(emotion_level)
 
     timeout = aiohttp.ClientTimeout(total=API_TIMEOUT_SECONDS)
     headers = {"Authorization": aiohttp.encode_basic_auth(api_key, "")}

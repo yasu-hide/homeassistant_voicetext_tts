@@ -181,6 +181,7 @@ async def test_synthesize_show_speaker_drops_emotion_silently():
     await synthesize(session, "fake-key", "こんにちは", "show", emotion="happiness")
     _, kwargs = session.post.call_args
     assert "emotion" not in kwargs["data"]
+    assert "emotion_level" not in kwargs["data"]
 
 
 async def test_synthesize_haruka_speaker_includes_emotion():
@@ -188,3 +189,15 @@ async def test_synthesize_haruka_speaker_includes_emotion():
     await synthesize(session, "fake-key", "こんにちは", "haruka", emotion="happiness")
     _, kwargs = session.post.call_args
     assert kwargs["data"]["emotion"] == "happiness"
+    assert kwargs["data"]["emotion_level"] == "2"
+
+
+async def test_synthesize_omits_emotion_level_when_no_emotion_requested():
+    # VoiceText's real API rejects emotion_level being sent without emotion
+    # ("emotion category must be accompanied with emotion level") - confirmed
+    # against the live API during real-device verification.
+    session, response = _mock_session(status=200, body=b"AUDIO")
+    await synthesize(session, "fake-key", "こんにちは", "hikari")
+    _, kwargs = session.post.call_args
+    assert "emotion" not in kwargs["data"]
+    assert "emotion_level" not in kwargs["data"]
