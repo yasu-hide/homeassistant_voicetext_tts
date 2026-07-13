@@ -44,13 +44,6 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
     _attr_supported_languages = ["ja-JP"]
     _attr_default_language = "ja-JP"
     _attr_supported_options = SUPPORTED_OPTIONS
-    _attr_default_options = {
-        ATTR_SPEAKER: DEFAULT_SPEAKER,
-        ATTR_EMOTION_LEVEL: DEFAULT_EMOTION_LEVEL,
-        ATTR_PITCH: DEFAULT_PITCH,
-        ATTR_SPEED: DEFAULT_SPEED,
-        ATTR_VOLUME: DEFAULT_VOLUME,
-    }
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the entity."""
@@ -58,6 +51,18 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
         self._entry = entry
         self._attr_unique_id = entry.entry_id
         self._attr_name = "VoiceText TTS"
+
+    @property
+    def default_options(self) -> dict:
+        """Return the default options, with entry.options overriding the const defaults."""
+        defaults = {
+            ATTR_SPEAKER: DEFAULT_SPEAKER,
+            ATTR_EMOTION_LEVEL: DEFAULT_EMOTION_LEVEL,
+            ATTR_PITCH: DEFAULT_PITCH,
+            ATTR_SPEED: DEFAULT_SPEED,
+            ATTR_VOLUME: DEFAULT_VOLUME,
+        }
+        return {**defaults, **self._entry.options}
 
     async def async_get_supported_voices(self, language: str) -> list[Voice] | None:
         """Return the list of VoiceText speakers as supported voices."""
@@ -70,28 +75,16 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
         options = options or {}
         data = self.hass.data[DOMAIN][self._entry.entry_id]
         try:
-            entry_options = self._entry.options
             audio = await synthesize(
                 session=data["session"],
                 api_key=data["api_key"],
                 text=message,
-                speaker=options.get(
-                    ATTR_SPEAKER, entry_options.get(ATTR_SPEAKER, DEFAULT_SPEAKER)
-                ),
+                speaker=options.get(ATTR_SPEAKER, DEFAULT_SPEAKER),
                 emotion=options.get(ATTR_EMOTION),
-                emotion_level=options.get(
-                    ATTR_EMOTION_LEVEL,
-                    entry_options.get(ATTR_EMOTION_LEVEL, DEFAULT_EMOTION_LEVEL),
-                ),
-                pitch=options.get(
-                    ATTR_PITCH, entry_options.get(ATTR_PITCH, DEFAULT_PITCH)
-                ),
-                speed=options.get(
-                    ATTR_SPEED, entry_options.get(ATTR_SPEED, DEFAULT_SPEED)
-                ),
-                volume=options.get(
-                    ATTR_VOLUME, entry_options.get(ATTR_VOLUME, DEFAULT_VOLUME)
-                ),
+                emotion_level=options.get(ATTR_EMOTION_LEVEL, DEFAULT_EMOTION_LEVEL),
+                pitch=options.get(ATTR_PITCH, DEFAULT_PITCH),
+                speed=options.get(ATTR_SPEED, DEFAULT_SPEED),
+                volume=options.get(ATTR_VOLUME, DEFAULT_VOLUME),
             )
         except VoiceTextError:
             _LOGGER.exception("VoiceText TTS synthesis failed")

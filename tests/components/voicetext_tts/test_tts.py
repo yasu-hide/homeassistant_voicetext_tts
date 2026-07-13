@@ -44,7 +44,40 @@ async def test_async_get_tts_audio_returns_mp3(hass):
         assert kwargs["emotion"] == "happiness"
 
 
-async def test_async_get_tts_audio_uses_entry_options_as_default(hass):
+async def test_default_options_reflects_entry_options(hass):
+    """The default_options property itself must merge in entry.options."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={"api_key": "fake-key"}, options={"speaker": "haruka"}
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    from custom_components.voicetext_tts.tts import VoiceTextTTSEntity
+
+    ent = next(
+        e
+        for e in hass.data["entity_components"]["tts"].entities
+        if isinstance(e, VoiceTextTTSEntity)
+    )
+    assert ent.default_options["speaker"] == "haruka"
+
+
+async def test_tts_speak_pipeline_uses_entry_options_as_default(hass):
+    """Exercise the real HA pipeline (SpeechManager.process_options), not a
+    direct async_get_tts_audio() call, to prove the Configure UI's options
+    actually reach the API when no per-call options are supplied.
+
+    HA's tts.speak service requires a real media_player entity to render
+    through, so instead we drive the same SpeechManager entry point that
+    async_speak()/media_source use: async_create_result_stream(), which
+    internally calls process_options() (merging entity.default_options)
+    before generating audio - this is the same merge step the real
+    tts.speak/media_source pipeline goes through. use_file_cache=False is
+    passed because pytest-homeassistant-custom-component's test config dir
+    is a fixed shared path (not a per-test tmpdir), so the disk cache would
+    otherwise persist across separate test runs and mask this assertion.
+    """
     entry = MockConfigEntry(
         domain=DOMAIN, data={"api_key": "fake-key"}, options={"speaker": "haruka"}
     )
@@ -56,14 +89,16 @@ async def test_async_get_tts_audio_uses_entry_options_as_default(hass):
         "custom_components.voicetext_tts.tts.synthesize",
         new=AsyncMock(return_value=b"AUDIO_BYTES"),
     ) as mock_synthesize:
-        from custom_components.voicetext_tts.tts import VoiceTextTTSEntity
-
-        ent = next(
-            e
-            for e in hass.data["entity_components"]["tts"].entities
-            if isinstance(e, VoiceTextTTSEntity)
+        manager = hass.data["tts_manager"]
+        stream = manager.async_create_result_stream(
+            engine="tts.voicetext_tts",
+            language="ja-JP",
+            options={},
+            use_file_cache=False,
         )
-        await ent.async_get_tts_audio("こんにちは", "ja-JP", options={})
+        stream.async_set_message("こんにちは")
+        await hass.async_block_till_done(wait_background_tasks=True)
+
         mock_synthesize.assert_called_once()
         _, kwargs = mock_synthesize.call_args
         assert kwargs["speaker"] == "haruka"
