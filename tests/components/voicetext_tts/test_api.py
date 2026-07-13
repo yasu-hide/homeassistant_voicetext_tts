@@ -43,7 +43,17 @@ def test_split_text_hard_cuts_when_no_punctuation_found():
     assert len(chunks[1]) == 50
 
 
-from unittest.mock import AsyncMock, MagicMock, patch
+def test_split_text_exact_boundary_lengths():
+    text_at_limit = "あ" * MAX_CHARS_PER_CHUNK
+    assert split_text(text_at_limit) == [text_at_limit]
+
+    text_over_limit = "あ" * (MAX_CHARS_PER_CHUNK + 1)
+    chunks = split_text(text_over_limit)
+    assert len(chunks) == 2
+    assert "".join(chunks) == text_over_limit
+
+
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.voicetext_tts.api import (
     VoiceTextAPIError,
@@ -73,7 +83,6 @@ def _mock_session(status: int = 200, body: bytes = b"AUDIO", text: str = "error 
     return session, response
 
 
-@pytest.mark.asyncio
 async def test_synthesize_short_text_makes_one_call():
     session, response = _mock_session(status=200, body=b"AUDIO_BYTES")
     result = await synthesize(session, "fake-key", "こんにちは", "hikari")
@@ -81,23 +90,43 @@ async def test_synthesize_short_text_makes_one_call():
     assert session.post.call_count == 1
 
 
-@pytest.mark.asyncio
 async def test_synthesize_long_text_concatenates_chunks():
-    session, response = _mock_session(status=200, body=b"CHUNK")
+    def _make_response(body: bytes):
+        response = MagicMock()
+        response.status = 200
+        response.read = AsyncMock(return_value=body)
+        response.text = AsyncMock(return_value="error body")
+        return response
+
+    class _CtxMgr:
+        def __init__(self_inner, response):
+            self_inner._response = response
+
+        async def __aenter__(self_inner):
+            return self_inner._response
+
+        async def __aexit__(self_inner, *args):
+            return False
+
+    session = MagicMock()
+    session.post = MagicMock(
+        side_effect=[
+            _CtxMgr(_make_response(b"CHUNK1")),
+            _CtxMgr(_make_response(b"CHUNK2")),
+        ]
+    )
     text = "あ" * 300
     result = await synthesize(session, "fake-key", text, "hikari")
     assert session.post.call_count == 2
-    assert result == b"CHUNKCHUNK"
+    assert result == b"CHUNK1CHUNK2"
 
 
-@pytest.mark.asyncio
 async def test_synthesize_raises_auth_error_on_401():
     session, response = _mock_session(status=401)
     with pytest.raises(VoiceTextAuthError):
         await synthesize(session, "bad-key", "こんにちは", "hikari")
 
 
-@pytest.mark.asyncio
 async def test_synthesize_raises_api_error_on_403_with_raw_body():
     session, response = _mock_session(status=403, text="plan limit exceeded")
     with pytest.raises(VoiceTextAPIError) as exc_info:
@@ -107,7 +136,6 @@ async def test_synthesize_raises_api_error_on_403_with_raw_body():
     assert "fake-key" not in str(exc_info.value)
 
 
-@pytest.mark.asyncio
 async def test_synthesize_raises_timeout_error():
     session = MagicMock()
 
@@ -123,7 +151,6 @@ async def test_synthesize_raises_timeout_error():
         await synthesize(session, "fake-key", "こんにちは", "hikari")
 
 
-@pytest.mark.asyncio
 async def test_synthesize_raises_text_too_long_error():
     session, response = _mock_session(status=200, body=b"CHUNK")
     text = "あ" * (MAX_CHARS_PER_CHUNK * (MAX_CHUNKS + 1))
@@ -132,7 +159,6 @@ async def test_synthesize_raises_text_too_long_error():
     assert session.post.call_count == 0
 
 
-@pytest.mark.asyncio
 async def test_synthesize_show_speaker_drops_emotion_silently():
     session, response = _mock_session(status=200, body=b"AUDIO")
     await synthesize(session, "fake-key", "こんにちは", "show", emotion="happiness")
@@ -140,7 +166,6 @@ async def test_synthesize_show_speaker_drops_emotion_silently():
     assert "emotion" not in kwargs["data"]
 
 
-@pytest.mark.asyncio
 async def test_synthesize_haruka_speaker_includes_emotion():
     session, response = _mock_session(status=200, body=b"AUDIO")
     await synthesize(session, "fake-key", "こんにちは", "haruka", emotion="happiness")

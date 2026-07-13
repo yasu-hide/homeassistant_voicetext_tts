@@ -101,11 +101,12 @@ async def _post_chunk(
         data["emotion"] = emotion
 
     timeout = aiohttp.ClientTimeout(total=API_TIMEOUT_SECONDS)
+    headers = {"Authorization": aiohttp.encode_basic_auth(api_key, "")}
     try:
         async with session.post(
             API_ENDPOINT,
             data=data,
-            auth=aiohttp.BasicAuth(api_key, ""),
+            headers=headers,
             timeout=timeout,
         ) as response:
             if response.status == 401:
