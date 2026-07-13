@@ -1,3 +1,5 @@
 pytest
 pytest-asyncio
 pytest-homeassistant-custom-component
+ha-ffmpeg==3.2.2
+mutagen==1.47.0
