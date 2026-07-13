@@ -13,22 +13,27 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import VoiceTextAuthError, VoiceTextError, synthesize
 from .const import (
     ATTR_EMOTION_LEVEL,
+    ATTR_FORMAT,
     ATTR_PITCH,
     ATTR_SPEAKER,
     ATTR_SPEED,
     ATTR_VOLUME,
+    AUDIO_FORMATS,
     CONF_API_KEY,
+    DEFAULT_AUDIO_FORMAT,
     DEFAULT_EMOTION_LEVEL,
     DEFAULT_PITCH,
     DEFAULT_SPEAKER,
     DEFAULT_SPEED,
     DEFAULT_VOLUME,
     DOMAIN,
+    EMOTION_LEVELS,
     SPEAKERS,
 )
 
@@ -95,8 +100,16 @@ class VoiceTextOptionsFlow(OptionsFlow):
                 ): vol.In(SPEAKERS),
                 vol.Optional(
                     ATTR_EMOTION_LEVEL,
-                    default=current.get(ATTR_EMOTION_LEVEL, DEFAULT_EMOTION_LEVEL),
-                ): vol.In([1, 2, 3, 4]),
+                    default=str(current.get(ATTR_EMOTION_LEVEL, DEFAULT_EMOTION_LEVEL)),
+                ): vol.All(
+                    vol.Coerce(str),
+                    selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=EMOTION_LEVELS,
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    ),
+                ),
                 vol.Optional(
                     ATTR_PITCH, default=current.get(ATTR_PITCH, DEFAULT_PITCH)
                 ): vol.All(int, vol.Range(min=50, max=200)),
@@ -106,6 +119,9 @@ class VoiceTextOptionsFlow(OptionsFlow):
                 vol.Optional(
                     ATTR_VOLUME, default=current.get(ATTR_VOLUME, DEFAULT_VOLUME)
                 ): vol.All(int, vol.Range(min=50, max=200)),
+                vol.Optional(
+                    ATTR_FORMAT, default=current.get(ATTR_FORMAT, DEFAULT_AUDIO_FORMAT)
+                ): vol.In(AUDIO_FORMATS),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

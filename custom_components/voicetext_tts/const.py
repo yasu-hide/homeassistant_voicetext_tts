@@ -10,7 +10,8 @@ DEFAULT_SPEAKER = "hikari"
 EMOTIONS = ["happiness", "anger", "sadness"]
 EMOTION_CAPABLE_SPEAKERS = ["haruka", "hikari", "takeru", "santa", "bear"]
 
-DEFAULT_EMOTION_LEVEL = 2
+EMOTION_LEVELS = ["1", "2", "3", "4"]
+DEFAULT_EMOTION_LEVEL = "2"
 DEFAULT_PITCH = 100
 DEFAULT_SPEED = 100
 DEFAULT_VOLUME = 100
@@ -27,6 +28,15 @@ ATTR_EMOTION_LEVEL = "emotion_level"
 ATTR_PITCH = "pitch"
 ATTR_SPEED = "speed"
 ATTR_VOLUME = "volume"
+ATTR_FORMAT = "format"
+
+AUDIO_FORMATS = ["mp3", "ogg", "wav"]
+DEFAULT_AUDIO_FORMAT = "mp3"
+
+# WAV's RIFF container isn't designed for sequential concatenation like mp3
+# frames or Ogg's chained bitstreams are, so it can only be used for text
+# that fits in a single VoiceText API call (no multi-chunk splitting).
+SINGLE_CHUNK_ONLY_FORMATS = ["wav"]
 
 SUPPORTED_OPTIONS = [
     ATTR_SPEAKER,

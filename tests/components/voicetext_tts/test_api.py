@@ -60,6 +60,7 @@ from custom_components.voicetext_tts.api import (
     VoiceTextAPIError,
     VoiceTextAuthError,
     VoiceTextConnectionError,
+    VoiceTextFormatRequiresSingleChunkError,
     VoiceTextTextTooLongError,
     VoiceTextTimeoutError,
     synthesize,
@@ -201,3 +202,34 @@ async def test_synthesize_omits_emotion_level_when_no_emotion_requested():
     _, kwargs = session.post.call_args
     assert "emotion" not in kwargs["data"]
     assert "emotion_level" not in kwargs["data"]
+
+
+async def test_synthesize_passes_audio_format_through():
+    session, response = _mock_session(status=200, body=b"AUDIO")
+    await synthesize(session, "fake-key", "こんにちは", "hikari", audio_format="ogg")
+    _, kwargs = session.post.call_args
+    assert kwargs["data"]["format"] == "ogg"
+
+
+async def test_synthesize_defaults_to_mp3_format():
+    session, response = _mock_session(status=200, body=b"AUDIO")
+    await synthesize(session, "fake-key", "こんにちは", "hikari")
+    _, kwargs = session.post.call_args
+    assert kwargs["data"]["format"] == "mp3"
+
+
+async def test_synthesize_wav_single_chunk_succeeds():
+    session, response = _mock_session(status=200, body=b"WAV_AUDIO")
+    result = await synthesize(
+        session, "fake-key", "こんにちは", "hikari", audio_format="wav"
+    )
+    assert result == b"WAV_AUDIO"
+    assert session.post.call_count == 1
+
+
+async def test_synthesize_wav_multi_chunk_raises_error():
+    session, response = _mock_session(status=200, body=b"WAV_AUDIO")
+    text = "あ" * (MAX_CHARS_PER_CHUNK + 1)
+    with pytest.raises(VoiceTextFormatRequiresSingleChunkError):
+        await synthesize(session, "fake-key", text, "hikari", audio_format="wav")
+    assert session.post.call_count == 0

@@ -26,7 +26,11 @@
           "emotion_level": "Emotion level",
           "pitch": "Pitch",
           "speed": "Speed",
-          "volume": "Volume"
+          "volume": "Volume",
+          "format": "Format"
+        },
+        "data_description": {
+          "format": "wav only supports messages under 200 characters; use mp3 or ogg for longer text"
         }
       }
     }

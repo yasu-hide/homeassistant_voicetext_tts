@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.tts import TextToSpeechEntity, TtsAudioType, Voice
+from homeassistant.components.tts import (
+    ATTR_PREFERRED_FORMAT,
+    TextToSpeechEntity,
+    TtsAudioType,
+    Voice,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -12,10 +17,12 @@ from .api import VoiceTextError, synthesize
 from .const import (
     ATTR_EMOTION,
     ATTR_EMOTION_LEVEL,
+    ATTR_FORMAT,
     ATTR_PITCH,
     ATTR_SPEAKER,
     ATTR_SPEED,
     ATTR_VOLUME,
+    DEFAULT_AUDIO_FORMAT,
     DEFAULT_EMOTION_LEVEL,
     DEFAULT_PITCH,
     DEFAULT_SPEAKER,
@@ -61,8 +68,11 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
             ATTR_PITCH: DEFAULT_PITCH,
             ATTR_SPEED: DEFAULT_SPEED,
             ATTR_VOLUME: DEFAULT_VOLUME,
+            ATTR_FORMAT: DEFAULT_AUDIO_FORMAT,
         }
-        return {**defaults, **self._entry.options}
+        merged = {**defaults, **self._entry.options}
+        merged[ATTR_PREFERRED_FORMAT] = merged[ATTR_FORMAT]
+        return merged
 
     async def async_get_supported_voices(self, language: str) -> list[Voice] | None:
         """Return the list of VoiceText speakers as supported voices."""
@@ -74,6 +84,7 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
         """Load TTS audio from VoiceText."""
         options = options or {}
         data = self.hass.data[DOMAIN][self._entry.entry_id]
+        audio_format = options.get(ATTR_FORMAT, DEFAULT_AUDIO_FORMAT)
         try:
             audio = await synthesize(
                 session=data["session"],
@@ -85,8 +96,9 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
                 pitch=options.get(ATTR_PITCH, DEFAULT_PITCH),
                 speed=options.get(ATTR_SPEED, DEFAULT_SPEED),
                 volume=options.get(ATTR_VOLUME, DEFAULT_VOLUME),
+                audio_format=audio_format,
             )
         except VoiceTextError:
             _LOGGER.exception("VoiceText TTS synthesis failed")
             return None, None
-        return "mp3", audio
+        return audio_format, audio
