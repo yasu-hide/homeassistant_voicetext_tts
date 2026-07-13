@@ -111,7 +111,7 @@ async def _post_chunk(
         data["emotion_level"] = str(emotion_level)
 
     timeout = aiohttp.ClientTimeout(total=API_TIMEOUT_SECONDS)
-    headers = {"Authorization": aiohttp.encode_basic_auth(api_key, "")}
+    headers = {"Authorization": aiohttp.BasicAuth(api_key, "").encode()}
     try:
         async with session.post(
             API_ENDPOINT,
