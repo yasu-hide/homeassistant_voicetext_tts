@@ -41,6 +41,10 @@ class VoiceTextTimeoutError(VoiceTextError):
     """Raised when the VoiceText API does not respond in time."""
 
 
+class VoiceTextConnectionError(VoiceTextError):
+    """Raised when the VoiceText API cannot be reached (DNS, connection, TLS, ...)."""
+
+
 class VoiceTextTextTooLongError(VoiceTextError):
     """Raised when the input text exceeds the configured chunk limit."""
 
@@ -118,6 +122,10 @@ async def _post_chunk(
     except asyncio.TimeoutError as err:
         raise VoiceTextTimeoutError(
             f"VoiceText API did not respond within {API_TIMEOUT_SECONDS}s"
+        ) from err
+    except aiohttp.ClientError as err:
+        raise VoiceTextConnectionError(
+            f"Could not connect to VoiceText API at {API_ENDPOINT}: {err}"
         ) from err
 
 

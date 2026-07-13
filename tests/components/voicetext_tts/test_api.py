@@ -1,6 +1,7 @@
 """Tests for the VoiceText API client."""
 import asyncio
 
+import aiohttp
 import pytest
 
 from custom_components.voicetext_tts.api import split_text
@@ -58,6 +59,7 @@ from unittest.mock import AsyncMock, MagicMock
 from custom_components.voicetext_tts.api import (
     VoiceTextAPIError,
     VoiceTextAuthError,
+    VoiceTextConnectionError,
     VoiceTextTextTooLongError,
     VoiceTextTimeoutError,
     synthesize,
@@ -148,6 +150,21 @@ async def test_synthesize_raises_timeout_error():
 
     session.post = MagicMock(return_value=_RaisingCtxMgr())
     with pytest.raises(VoiceTextTimeoutError):
+        await synthesize(session, "fake-key", "こんにちは", "hikari")
+
+
+async def test_synthesize_raises_connection_error_on_client_error():
+    session = MagicMock()
+
+    class _RaisingCtxMgr:
+        async def __aenter__(self_inner):
+            raise aiohttp.ClientConnectionError("connection refused")
+
+        async def __aexit__(self_inner, *args):
+            return False
+
+    session.post = MagicMock(return_value=_RaisingCtxMgr())
+    with pytest.raises(VoiceTextConnectionError):
         await synthesize(session, "fake-key", "こんにちは", "hikari")
 
 

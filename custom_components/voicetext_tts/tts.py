@@ -70,16 +70,28 @@ class VoiceTextTTSEntity(TextToSpeechEntity):
         options = options or {}
         data = self.hass.data[DOMAIN][self._entry.entry_id]
         try:
+            entry_options = self._entry.options
             audio = await synthesize(
                 session=data["session"],
                 api_key=data["api_key"],
                 text=message,
-                speaker=options.get(ATTR_SPEAKER, DEFAULT_SPEAKER),
+                speaker=options.get(
+                    ATTR_SPEAKER, entry_options.get(ATTR_SPEAKER, DEFAULT_SPEAKER)
+                ),
                 emotion=options.get(ATTR_EMOTION),
-                emotion_level=options.get(ATTR_EMOTION_LEVEL, DEFAULT_EMOTION_LEVEL),
-                pitch=options.get(ATTR_PITCH, DEFAULT_PITCH),
-                speed=options.get(ATTR_SPEED, DEFAULT_SPEED),
-                volume=options.get(ATTR_VOLUME, DEFAULT_VOLUME),
+                emotion_level=options.get(
+                    ATTR_EMOTION_LEVEL,
+                    entry_options.get(ATTR_EMOTION_LEVEL, DEFAULT_EMOTION_LEVEL),
+                ),
+                pitch=options.get(
+                    ATTR_PITCH, entry_options.get(ATTR_PITCH, DEFAULT_PITCH)
+                ),
+                speed=options.get(
+                    ATTR_SPEED, entry_options.get(ATTR_SPEED, DEFAULT_SPEED)
+                ),
+                volume=options.get(
+                    ATTR_VOLUME, entry_options.get(ATTR_VOLUME, DEFAULT_VOLUME)
+                ),
             )
         except VoiceTextError:
             _LOGGER.exception("VoiceText TTS synthesis failed")

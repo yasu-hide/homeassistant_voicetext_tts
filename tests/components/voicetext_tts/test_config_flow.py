@@ -1,14 +1,12 @@
 """Tests for the VoiceText TTS config flow."""
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant import config_entries
 
 from custom_components.voicetext_tts.api import VoiceTextAuthError, VoiceTextAPIError
 from custom_components.voicetext_tts.const import DOMAIN
 
 
-@pytest.mark.asyncio
 async def test_user_flow_success(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -28,7 +26,22 @@ async def test_user_flow_success(hass):
     assert result["data"]["api_key"] == "good-key"
 
 
-@pytest.mark.asyncio
+async def test_user_flow_aborts_if_already_configured(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=DOMAIN, data={"api_key": "existing-key"}
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "already_configured"
+
+
 async def test_user_flow_invalid_auth(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -46,7 +59,6 @@ async def test_user_flow_invalid_auth(hass):
     assert result["errors"] == {"base": "invalid_auth"}
 
 
-@pytest.mark.asyncio
 async def test_user_flow_cannot_connect(hass):
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -64,7 +76,6 @@ async def test_user_flow_cannot_connect(hass):
     assert result["errors"] == {"base": "cannot_connect"}
 
 
-@pytest.mark.asyncio
 async def test_options_flow_updates_defaults(hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 

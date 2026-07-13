@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "VoiceText TTS",
+        "description": "Enter your VoiceText WebAPI key. A test request is made to confirm it works before saving.",
+        "data": {
+          "api_key": "API Key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Failed to connect to the VoiceText API"
+    },
+    "abort": {
+      "already_configured": "Service is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "VoiceText TTS Options",
+        "data": {
+          "speaker": "Speaker",
+          "emotion_level": "Emotion level",
+          "pitch": "Pitch",
+          "speed": "Speed",
+          "volume": "Volume"
+        }
+      }
+    }
+  }
+}
