@@ -63,6 +63,92 @@ async def test_default_options_reflects_entry_options(hass):
     assert ent.default_options["speaker"] == "haruka"
 
 
+async def test_default_options_format_defaults_to_mp3_and_sets_preferred_format(hass):
+    """Regression guard for the tts_proxy-forces-mp3 bug: our own
+    default_options must always mirror the configured format into HA's
+    ATTR_PREFERRED_FORMAT, or HA will silently transcode our audio.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={"api_key": "fake-key"})
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    from custom_components.voicetext_tts.tts import VoiceTextTTSEntity
+
+    ent = next(
+        e
+        for e in hass.data["entity_components"]["tts"].entities
+        if isinstance(e, VoiceTextTTSEntity)
+    )
+    assert ent.default_options["format"] == "mp3"
+    assert ent.default_options["preferred_format"] == "mp3"
+
+
+async def test_default_options_emotion_level_defaults_to_string(hass):
+    """Regression guard: emotion_level's default must be a string, not an
+    int, so ha-form's radio-group selector can pre-select it correctly.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={"api_key": "fake-key"})
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    from custom_components.voicetext_tts.tts import VoiceTextTTSEntity
+
+    ent = next(
+        e
+        for e in hass.data["entity_components"]["tts"].entities
+        if isinstance(e, VoiceTextTTSEntity)
+    )
+    assert ent.default_options["emotion_level"] == "2"
+
+
+async def test_default_options_format_reflects_entry_options(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={"api_key": "fake-key"}, options={"format": "ogg"}
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    from custom_components.voicetext_tts.tts import VoiceTextTTSEntity
+
+    ent = next(
+        e
+        for e in hass.data["entity_components"]["tts"].entities
+        if isinstance(e, VoiceTextTTSEntity)
+    )
+    assert ent.default_options["format"] == "ogg"
+    assert ent.default_options["preferred_format"] == "ogg"
+
+
+async def test_async_get_tts_audio_returns_ogg_when_format_requested(hass):
+    entry = MockConfigEntry(domain=DOMAIN, data={"api_key": "fake-key"})
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with patch(
+        "custom_components.voicetext_tts.tts.synthesize",
+        new=AsyncMock(return_value=b"AUDIO_BYTES"),
+    ) as mock_synthesize:
+        from custom_components.voicetext_tts.tts import VoiceTextTTSEntity
+
+        ent = next(
+            e
+            for e in hass.data["entity_components"]["tts"].entities
+            if isinstance(e, VoiceTextTTSEntity)
+        )
+        extension, audio = await ent.async_get_tts_audio(
+            "こんにちは", "ja-JP", options={"format": "ogg"}
+        )
+        assert extension == "ogg"
+        assert audio == b"AUDIO_BYTES"
+        mock_synthesize.assert_called_once()
+        _, kwargs = mock_synthesize.call_args
+        assert kwargs["audio_format"] == "ogg"
+
+
 async def test_tts_speak_pipeline_uses_entry_options_as_default(hass):
     """Exercise the real HA pipeline (SpeechManager.process_options), not a
     direct async_get_tts_audio() call, to prove the Configure UI's options

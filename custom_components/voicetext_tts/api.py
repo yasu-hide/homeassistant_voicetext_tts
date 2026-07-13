@@ -12,6 +12,7 @@ from .const import (
     EMOTION_CAPABLE_SPEAKERS,
     MAX_CHARS_PER_CHUNK,
     MAX_CHUNKS,
+    SINGLE_CHUNK_ONLY_FORMATS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,6 +48,10 @@ class VoiceTextConnectionError(VoiceTextError):
 
 class VoiceTextTextTooLongError(VoiceTextError):
     """Raised when the input text exceeds the configured chunk limit."""
+
+
+class VoiceTextFormatRequiresSingleChunkError(VoiceTextError):
+    """Raised when a format in SINGLE_CHUNK_ONLY_FORMATS is requested for text that splits into multiple chunks."""
 
 
 def split_text(text: str) -> list[str]:
@@ -86,16 +91,17 @@ async def _post_chunk(
     text: str,
     speaker: str,
     emotion: str | None,
-    emotion_level: int,
+    emotion_level: str,
     pitch: int,
     speed: int,
     volume: int,
+    audio_format: str,
 ) -> bytes:
     """POST a single chunk (<=MAX_CHARS_PER_CHUNK chars) to VoiceText."""
     data = {
         "text": text,
         "speaker": speaker,
-        "format": "mp3",
+        "format": audio_format,
         "pitch": str(pitch),
         "speed": str(speed),
         "volume": str(volume),
@@ -135,18 +141,25 @@ async def synthesize(
     text: str,
     speaker: str,
     emotion: str | None = None,
-    emotion_level: int = 2,
+    emotion_level: str = "2",
     pitch: int = 100,
     speed: int = 100,
     volume: int = 100,
+    audio_format: str = "mp3",
 ) -> bytes:
-    """Synthesize speech for arbitrary-length text, returning combined mp3 bytes.
+    """Synthesize speech for arbitrary-length text, returning combined audio bytes in the requested format.
 
     Splits text longer than MAX_CHARS_PER_CHUNK into multiple VoiceText API
-    calls and concatenates the resulting mp3 bytes sequentially. If any
+    calls and concatenates the resulting audio bytes sequentially. If any
     chunk call fails, the whole synthesis fails (no partial playback).
     """
     chunks = split_text(text)
+    if audio_format in SINGLE_CHUNK_ONLY_FORMATS and len(chunks) > 1:
+        raise VoiceTextFormatRequiresSingleChunkError(
+            f"'{audio_format}' cannot be used with text that splits into multiple "
+            f"chunks (got {len(chunks)} chunks); use mp3 or ogg for text over "
+            f"{MAX_CHARS_PER_CHUNK} characters"
+        )
     if len(chunks) > MAX_CHUNKS:
         raise VoiceTextTextTooLongError(
             f"Text splits into {len(chunks)} chunks, exceeding the limit of {MAX_CHUNKS}"
@@ -165,6 +178,7 @@ async def synthesize(
                 pitch,
                 speed,
                 volume,
+                audio_format,
             )
         )
     return b"".join(audio_parts)

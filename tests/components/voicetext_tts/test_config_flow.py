@@ -96,8 +96,10 @@ async def test_options_flow_updates_defaults(hass):
             "pitch": 110,
             "speed": 90,
             "volume": 150,
+            "format": "ogg",
         },
     )
     assert result["type"] == "create_entry"
     assert entry.options["speaker"] == "haruka"
-    assert entry.options["emotion_level"] == 3
+    assert entry.options["emotion_level"] == "3"
+    assert entry.options["format"] == "ogg"

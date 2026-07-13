@@ -27,7 +27,10 @@ commit or log this value anywhere.
 2. Enter your API key. The integration performs a small real API call to
    confirm the key works before saving.
 3. Optionally, click **Configure** on the integration to change the default
-   speaker, emotion level, pitch, speed, and volume.
+   speaker, emotion level, pitch, speed, volume, and audio format
+   (`mp3`/`ogg`/`wav`, default `mp3`). `wav` only supports messages under
+   200 characters (VoiceText responses can't be chunk-concatenated for wav
+   the way mp3/ogg can) — use `mp3` or `ogg` for longer text.
 
 ## Usage
 

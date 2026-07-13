@@ -1,0 +1,38 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "VoiceText TTS",
+        "description": "VoiceText WebAPIのAPIキーを入力してください。保存前に動作確認のためテストリクエストを送信します。",
+        "data": {
+          "api_key": "APIキー"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "APIキーが無効です",
+      "cannot_connect": "VoiceText APIへの接続に失敗しました"
+    },
+    "abort": {
+      "already_configured": "すでに設定済みです"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "VoiceText TTS オプション",
+        "data": {
+          "speaker": "話者",
+          "emotion_level": "感情の強さ",
+          "pitch": "ピッチ",
+          "speed": "速度",
+          "volume": "音量",
+          "format": "フォーマット"
+        },
+        "data_description": {
+          "format": "wavは200文字未満のメッセージのみ対応です。長文にはmp3かoggを使用してください"
+        }
+      }
+    }
+  }
+}
