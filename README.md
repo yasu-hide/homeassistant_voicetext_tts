@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/github/yasu-hide/homeassistant_voicetext_tts/graph/badge.svg?token=YM92VA8SCL)](https://codecov.io/github/yasu-hide/homeassistant_voicetext_tts)
+
 # VoiceText TTS for Home Assistant
 
 Home Assistant custom_component that exposes [HOYA's VoiceText WebAPI](https://cloud.voicetext.jp/webapi/docs/api)
